@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private double _lastRenderTime;
     private double _offset;
     private double _viewportWidth;
+    private double _cycleLength;
     private double _speedPixelsPerSecond;
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
     {
@@ -206,12 +207,13 @@ public partial class MainWindow : Window
 
                 // Start from right edge and keep the same anchor on each loop.
                 _viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
+                _cycleLength = _firstContentWidth + _viewportWidth;
                 var pct = Math.Clamp(_settings.InitialOffsetPercent, 0, 100) / 100.0;
                 // 100 -> first item starts at right edge, 0 -> one full cycle ahead
-                _offset = (1.0 - pct) * _firstContentWidth;
-                if (_firstContentWidth > 0)
+                _offset = (1.0 - pct) * _cycleLength;
+                if (_cycleLength > 0)
                 {
-                    _offset = (_offset % _firstContentWidth + _firstContentWidth) % _firstContentWidth;
+                    _offset = (_offset % _cycleLength + _cycleLength) % _cycleLength;
                 }
                 _tickerTransform.X = _viewportWidth - _offset;
                 _speedPixelsPerSecond = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0;
@@ -256,12 +258,14 @@ public partial class MainWindow : Window
             _offset += delta * _speedPixelsPerSecond;
             if (_firstContentWidth > 0)
             {
-                while (_offset >= _firstContentWidth)
-                {
-                    _offset -= _firstContentWidth;
-                }
                 var grid = this.FindName("TickerGrid") as System.Windows.Controls.Grid;
                 _viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
+                _cycleLength = _firstContentWidth + _viewportWidth;
+
+                while (_cycleLength > 0 && _offset >= _cycleLength)
+                {
+                    _offset -= _cycleLength;
+                }
                 _tickerTransform.X = _viewportWidth - _offset;
             }
         }
