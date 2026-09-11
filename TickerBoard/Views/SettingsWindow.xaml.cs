@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 
@@ -47,39 +48,67 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        // Before saving, resolve display names and markets by calling the market data provider.
+        // Batch resolve display names and markets by calling the market data provider.
         var provider = new YahooMarketDataProvider();
-        // For each entered symbol, try to resolve its name and market. Prefer JP (.T) first to get Japanese names, then US
         var symbols = _vm.Symbols.ToList();
+        var codes = symbols
+            .Select(s => (s.Symbol ?? string.Empty).Trim())
+            .Where(c => !string.IsNullOrEmpty(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var resolved = new Dictionary<string, (string Name, string Market)>(StringComparer.OrdinalIgnoreCase);
+        if (codes.Count > 0)
+        {
+            // Try JP first in one batch to prefer Japanese names.
+            var jpRequests = codes
+                .Select(code => new SymbolSetting { Symbol = code, Name = string.Empty, Market = "JP" })
+                .ToList();
+            var jpResults = (await provider.GetQuotesAsync(jpRequests)).ToList();
+            for (int i = 0; i < jpRequests.Count; i++)
+            {
+                var quote = jpResults.ElementAtOrDefault(i);
+                if (quote != null && !string.IsNullOrWhiteSpace(quote.Name) && quote.Price != 0m)
+                {
+                    resolved[jpRequests[i].Symbol] = (quote.Name, "JP");
+                }
+            }
+
+            // Query unresolved codes in one US batch.
+            var unresolved = codes.Where(code => !resolved.ContainsKey(code)).ToList();
+            if (unresolved.Count > 0)
+            {
+                var usRequests = unresolved
+                    .Select(code => new SymbolSetting { Symbol = code, Name = string.Empty, Market = "US" })
+                    .ToList();
+                var usResults = (await provider.GetQuotesAsync(usRequests)).ToList();
+                for (int i = 0; i < usRequests.Count; i++)
+                {
+                    var quote = usResults.ElementAtOrDefault(i);
+                    if (quote != null && !string.IsNullOrWhiteSpace(quote.Name) && quote.Price != 0m)
+                    {
+                        resolved[usRequests[i].Symbol] = (quote.Name, "US");
+                    }
+                }
+            }
+        }
+
+        // Apply resolved names/markets back to settings symbols.
         foreach (var s in symbols)
         {
             var code = (s.Symbol ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(code)) continue;
-            // Try JP (Tokyo) first to prefer Japanese names
-            var tryJp = await provider.GetQuotesAsync(new[] { new SymbolSetting { Symbol = code, Name = string.Empty, Market = "JP" } });
-            var quoteJ = tryJp.FirstOrDefault();
-            if (quoteJ != null && !string.IsNullOrWhiteSpace(quoteJ.Name) && quoteJ.Price != 0m)
-            {
-                s.Name = quoteJ.Name;
-                s.Market = "JP";
-                continue;
-            }
 
-            // Then try US
-            var tryUs = await provider.GetQuotesAsync(new[] { new SymbolSetting { Symbol = code, Name = string.Empty, Market = "US" } });
-            var quote = tryUs.FirstOrDefault();
-            if (quote != null && !string.IsNullOrWhiteSpace(quote.Name) && quote.Price != 0m)
+            if (resolved.TryGetValue(code, out var info))
             {
-                s.Name = quote.Name;
-                s.Market = "US";
-                continue;
+                s.Name = string.IsNullOrWhiteSpace(info.Name) ? code : info.Name;
+                s.Market = info.Market;
             }
-
-            // Fallback: use returned name if any, else keep existing name or code
-            if (quoteJ != null && !string.IsNullOrWhiteSpace(quoteJ.Name)) s.Name = quoteJ.Name;
-            else if (quote != null && !string.IsNullOrWhiteSpace(quote.Name)) s.Name = quote.Name;
-            else if (string.IsNullOrWhiteSpace(s.Name)) s.Name = code;
-            s.Market ??= "US";
+            else
+            {
+                if (string.IsNullOrWhiteSpace(s.Name)) s.Name = code;
+                s.Market ??= "US";
+            }
         }
 
         var app = _vm.ToAppSettings();
