@@ -13,10 +13,10 @@ public partial class MainWindow : Window
     {
         _settings = await _settingsService.LoadAsync();
 
-        var packagedDefaults = new AppSettings();
         if (_settings.Symbols is null || _settings.Symbols.Count == 0)
         {
-            _settings.Symbols = packagedDefaults.Symbols;
+            var defaults = await _settingsService.GetPackagedDefaultsAsync();
+            _settings.Symbols = defaults.Symbols;
             await _settingsService.SaveAsync(_settings);
         }
 
