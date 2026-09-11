@@ -47,6 +47,42 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        // Before saving, resolve display names and markets by calling the market data provider.
+        var provider = new YahooMarketDataProvider();
+        // For each entered symbol, try to resolve its name and market. Prefer as-is (US), then try JP (.T)
+        var symbols = _vm.Symbols.ToList();
+        foreach (var s in symbols)
+        {
+            var code = (s.Symbol ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(code)) continue;
+
+            // Try US first
+            var tryUs = await provider.GetQuotesAsync(new[] { new SymbolSetting { Symbol = code, Name = string.Empty, Market = "US" } });
+            var quote = tryUs.FirstOrDefault();
+            if (quote != null && !string.IsNullOrWhiteSpace(quote.Name) && quote.Price != 0m)
+            {
+                s.Name = quote.Name;
+                s.Market = "US";
+                continue;
+            }
+
+            // Try JP (Tokyo) by setting Market=JP which provider maps to .T
+            var tryJp = await provider.GetQuotesAsync(new[] { new SymbolSetting { Symbol = code, Name = string.Empty, Market = "JP" } });
+            var quoteJ = tryJp.FirstOrDefault();
+            if (quoteJ != null && !string.IsNullOrWhiteSpace(quoteJ.Name) && quoteJ.Price != 0m)
+            {
+                s.Name = quoteJ.Name;
+                s.Market = "JP";
+                continue;
+            }
+
+            // Fallback: use returned name if any, else keep existing name or code
+            if (quote != null && !string.IsNullOrWhiteSpace(quote.Name)) s.Name = quote.Name;
+            else if (quoteJ != null && !string.IsNullOrWhiteSpace(quoteJ.Name)) s.Name = quoteJ.Name;
+            else if (string.IsNullOrWhiteSpace(s.Name)) s.Name = code;
+            s.Market ??= "US";
+        }
+
         var app = _vm.ToAppSettings();
         // Preserve DisplayDeviceName if present
         var existing = await _settingsService.LoadAsync();

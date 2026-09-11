@@ -5,9 +5,9 @@
     <DockPanel Margin="8">
         <DataGrid x:Name="SymbolsGrid" AutoGenerateColumns="False" CanUserAddRows="True" ItemsSource="{Binding Symbols}" DockPanel.Dock="Top" Height="260">
             <DataGrid.Columns>
+                <!-- ユーザーが入力できるのはコードのみ。表示名はAPIで取得して保存する -->
                 <DataGridTextColumn Header="コード" Binding="{Binding Symbol, UpdateSourceTrigger=PropertyChanged}" />
-                <DataGridTextColumn Header="表示名" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
-                <DataGridComboBoxColumn Header="市場" SelectedItemBinding="{Binding Market, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Markets}" />
+                <DataGridTextColumn Header="表示名" Binding="{Binding Name}" IsReadOnly="True" />
             </DataGrid.Columns>
         </DataGrid>
 
