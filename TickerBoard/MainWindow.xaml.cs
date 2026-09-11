@@ -7,6 +7,10 @@ public partial class MainWindow : Window
     private readonly JsonSettingsService _settingsService;
     private readonly MainViewModel _viewModel;
     private AppSettings _settings = new();
+    private System.Windows.Threading.DispatcherTimer? _tickerTimer;
+    private System.Windows.Media.TranslateTransform? _tickerTransform;
+    private double _firstContentWidth;
+    private const double ScrollSpeed = 1.0; // pixels per tick
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
     {
         _settingsService = settingsService;
