@@ -1,5 +1,6 @@
 using System.Net.Http;
-using System.Text.Json;
+using YahooFinanceApi;
+
 
 namespace TickerBoard;
 
@@ -24,44 +25,48 @@ public sealed class YahooMarketDataProvider : IMarketDataProvider
 
         // Build symbol list for Yahoo Finance
         var yahooSymbols = symbols.Select(ToYahooSymbol).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var chunk = string.Join(',', yahooSymbols);
-        var url = $"https://query1.finance.yahoo.com/v7/finance/quote?symbols={Uri.EscapeDataString(chunk)}";
-
         try
         {
-            await using var stream = await _http.GetStreamAsync(url, cancellationToken);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            if (!doc.RootElement.TryGetProperty("quoteResponse", out var qr) || !qr.TryGetProperty("result", out var results)) return Array.Empty<StockQuote>();
+            var securities = await Yahoo.Symbols(yahooSymbols.ToArray())
+                .Fields(Field.Symbol, Field.ShortName, Field.RegularMarketPrice, Field.RegularMarketChange, Field.RegularMarketChangePercent, Field.Currency)
+                .QueryAsync();
 
             var list = new List<StockQuote>();
-            foreach (var item in results.EnumerateArray())
+            foreach (var s in yahooSymbols)
             {
-                try
+                if (securities.TryGetValue(s, out var data))
                 {
-                    var symbol = item.GetProperty("symbol").GetString() ?? string.Empty;
-                    var name = item.TryGetProperty("shortName", out var sn) ? sn.GetString() ?? symbol : symbol;
-                    if (string.IsNullOrEmpty(name) && item.TryGetProperty("longName", out var ln)) name = ln.GetString() ?? symbol;
-                    var price = item.TryGetProperty("regularMarketPrice", out var rp) && rp.ValueKind != JsonValueKind.Null ? rp.GetDecimal() : 0m;
-                    var change = item.TryGetProperty("regularMarketChange", out var rc) && rc.ValueKind != JsonValueKind.Null ? rc.GetDecimal() : 0m;
-                    var changePercent = item.TryGetProperty("regularMarketChangePercent", out var rcp) && rcp.ValueKind != JsonValueKind.Null ? rcp.GetDecimal() : 0m;
-                    var currency = item.TryGetProperty("currency", out var cur) ? (cur.GetString() ?? "USD") : "USD";
+                    string symbolStr = s;
+                    string name = s;
+                    try { name = data.ShortName ?? data.LongName ?? s; } catch { }
+                    decimal price = 0m;
+                    try { price = data.RegularMarketPrice != null ? Convert.ToDecimal(data.RegularMarketPrice) : 0m; } catch { }
+                    decimal change = 0m;
+                    try { change = data.RegularMarketChange != null ? Convert.ToDecimal(data.RegularMarketChange) : 0m; } catch { }
+                    decimal changePercent = 0m;
+                    try { changePercent = data.RegularMarketChangePercent != null ? Convert.ToDecimal(data.RegularMarketChangePercent) : 0m; } catch { }
+                    string currency = "USD";
+                    try { currency = data.Currency ?? "USD"; } catch { }
 
-                    // Convert Yahoo symbol back to requested form if needed (e.g., 7203.T -> 7203)
-                    var originalSymbol = symbol;
-                    if (symbol.EndsWith(".T", StringComparison.OrdinalIgnoreCase)) originalSymbol = symbol.Substring(0, symbol.Length - 2);
+                    // map back 7203.T -> 7203
+                    if (symbolStr.EndsWith(".T", StringComparison.OrdinalIgnoreCase)) symbolStr = symbolStr.Substring(0, symbolStr.Length - 2);
 
-                    list.Add(new StockQuote(originalSymbol, name, price, change, changePercent, currency == "JPY" ? "JPY" : "USD"));
+                    list.Add(new StockQuote(symbolStr, name ?? symbolStr, price, change, changePercent, currency == "JPY" ? "JPY" : "USD"));
                 }
-                catch { /* skip malformed item */ }
+                else
+                {
+                    // missing data
+                    var orig = symbols.FirstOrDefault(x => string.Equals(ToYahooSymbol(x), s, StringComparison.OrdinalIgnoreCase));
+                    if (orig != null) list.Add(new StockQuote(orig.Symbol, orig.Name, 0m, 0m, 0m, orig.Market == "JP" ? "JPY" : "USD"));
+                }
             }
 
-            // Preserve requested order: map back to provided symbols order
+            // Preserve requested order based on original symbols
             var ordered = symbols.Select(s => list.FirstOrDefault(q => string.Equals(q.Symbol, s.Symbol, StringComparison.OrdinalIgnoreCase)) ?? new StockQuote(s.Symbol, s.Name, 0m, 0m, 0m, s.Market == "JP" ? "JPY" : "USD")).ToList();
             return ordered;
         }
         catch
         {
-            // On error, return zeroed quotes so UI still has entries
             return symbols.Select(s => new StockQuote(s.Symbol, s.Name, 0m, 0m, 0m, s.Market == "JP" ? "JPY" : "USD")).ToList();
         }
     }
