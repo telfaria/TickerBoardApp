@@ -24,7 +24,7 @@
             <Border DockPanel.Dock="Right" Background="#0F172A" Padding="12,0"><TextBlock VerticalAlignment="Center" Foreground="#94A3B8" Text="{Binding LastUpdatedText}" /></Border>
             <Grid x:Name="TickerGrid" ClipToBounds="True">
                 <!-- テスト用のスクロールバーを再追加 -->
-                <ScrollViewer x:Name="TickerScroller" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Disabled" PanningMode="HorizontalOnly" CanContentScroll="False">
+                <ScrollViewer x:Name="TickerScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PanningMode="HorizontalOnly" CanContentScroll="False">
                     <StackPanel x:Name="TickerStack" Orientation="Horizontal" RenderTransformOrigin="0,0">
                         <ItemsControl x:Name="QuotesControl1" ItemsSource="{Binding DisplayQuotes}" ItemTemplate="{StaticResource QuoteTemplate}">
                             <ItemsControl.ItemsPanel>
