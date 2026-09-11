@@ -32,8 +32,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private double _fontSize = 14.0;
     public double FontSize { get => _fontSize; set => SetField(ref _fontSize, value); }
 
-    private double _scrollSpeed = 60.0;
-    public double ScrollSpeed { get => _scrollSpeed; set => SetField(ref _scrollSpeed, value); }
+    private int _scrollSpeed = 60;
+    public int ScrollSpeed { get => _scrollSpeed; set => SetField(ref _scrollSpeed, value); }
 
     public SettingsViewModel(AppSettings settings)
     {
@@ -62,8 +62,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             Symbols = Symbols.ToList()
         ,
             FontFamily = FontFamily,
-            FontSize = FontSize
-            ,
+            FontSize = FontSize,
             ScrollSpeed = ScrollSpeed
         };
     }
@@ -77,7 +76,6 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         {
             if (string.IsNullOrWhiteSpace(s.Symbol)) { errors.Add("銘柄コードが空です。"); break; }
             if (!codes.Add(s.Symbol)) { errors.Add($"重複した銘柄コードがあります: {s.Symbol}"); break; }
-            if (string.IsNullOrWhiteSpace(s.Market)) { errors.Add($"市場が未選択の銘柄があります: {s.Symbol}"); break; }
         }
         if (FontSize < 8 || FontSize > 72) errors.Add("フォントサイズは8〜72の間で指定してください。");
         if (ScrollSpeed < 1 || ScrollSpeed > 1000) errors.Add("スクロール速度は1〜1000 (px/s) の範囲で指定してください。");

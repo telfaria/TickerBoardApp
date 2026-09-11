@@ -31,7 +31,7 @@
                 <TextBox Width="80" Text="{Binding FontSize, UpdateSourceTrigger=PropertyChanged}" />
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
                     <TextBlock Width="160" VerticalAlignment="Center">スクロール速度 (px/s):</TextBlock>
-                    <Slider Width="200" Minimum="1" Maximum="1000" Value="{Binding ScrollSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                <Slider Width="200" Minimum="1" Maximum="1000" Value="{Binding ScrollSpeed, UpdateSourceTrigger=PropertyChanged}" SmallChange="1" TickFrequency="1" IsSnapToTickEnabled="True" />
                     <TextBox Width="80" Margin="8,0,0,0" Text="{Binding ScrollSpeed, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
             </StackPanel>
