@@ -8,7 +8,12 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private AppSettings _settings = new();
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
-    { _settingsService = settingsService; _viewModel = new MainViewModel(marketDataProvider); DataContext = _viewModel; InitializeComponent(); }
+    {
+        _settingsService = settingsService;
+        _viewModel = new MainViewModel(marketDataProvider);
+        InitializeComponent();
+        DataContext = _viewModel;
+    }
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         _settings = await _settingsService.LoadAsync();
