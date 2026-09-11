@@ -39,6 +39,17 @@ public partial class MainWindow : Window
 
         ApplyWindowSettings();
         await _viewModel.InitializeAsync(_settings.Symbols, _settings.RefreshIntervalSeconds);
+
+        // Debug assist: ensure ItemsControl is bound; if binding didn't pick up, assign ItemsSource explicitly
+        try
+        {
+            var quotesControl = this.FindName("QuotesControl") as System.Windows.Controls.ItemsControl;
+            if (quotesControl != null && quotesControl.ItemsSource == null)
+            {
+                quotesControl.ItemsSource = _viewModel.Quotes;
+            }
+        }
+        catch { }
     }
     private void ApplyWindowSettings()
     {
