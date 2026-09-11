@@ -27,5 +27,5 @@ public sealed class QuoteViewModel(StockQuote quote)
     public string Symbol => quote.Symbol; public string Name => quote.Name;
     public string PriceDisplay => quote.Currency == "JPY" ? quote.Price.ToString("N2", CultureInfo.InvariantCulture) : "$" + quote.Price.ToString("N2", CultureInfo.InvariantCulture);
     public string ChangeDisplay => $"{quote.Change:+0.00;-0.00;0.00} ({quote.ChangePercent:+0.00;-0.00;0.00}%)";
-    public Brush ChangeBrush => quote.Change > 0 ? Brushes.LimeGreen : quote.Change < 0 ? Brushes.OrangeRed : Brushes.LightGray;
+public System.Windows.Media.Brush ChangeBrush => quote.Change > 0 ? System.Windows.Media.Brushes.LimeGreen : quote.Change < 0 ? System.Windows.Media.Brushes.OrangeRed : System.Windows.Media.Brushes.LightGray;
 }

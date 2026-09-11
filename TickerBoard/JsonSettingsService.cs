@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Text.Json;
 namespace TickerBoard;
 public sealed class JsonSettingsService

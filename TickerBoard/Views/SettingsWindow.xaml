@@ -1,0 +1,33 @@
+<Window x:Class="TickerBoard.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="設定" Height="480" Width="720" WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="8">
+        <DataGrid x:Name="SymbolsGrid" AutoGenerateColumns="False" CanUserAddRows="True" ItemsSource="{Binding Symbols}" DockPanel.Dock="Top" Height="260">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="コード" Binding="{Binding Symbol, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridTextColumn Header="表示名" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                <DataGridComboBoxColumn Header="市場" SelectedItemBinding="{Binding Market, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding Markets}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Orientation="Vertical" Margin="0,8,0,0">
+            <StackPanel Orientation="Horizontal" Margin="0,4">
+                <TextBlock Width="160" VerticalAlignment="Center">更新間隔（秒）:</TextBlock>
+                <TextBox Width="80" Text="{Binding RefreshIntervalSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Width="120" Margin="12,0,0,0" VerticalAlignment="Center">バーの高さ（px）:</TextBlock>
+                <TextBox Width="80" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,4">
+                <TextBlock Width="160" VerticalAlignment="Center">透明度（%）:</TextBlock>
+                <TextBox Width="80" Text="{Binding OpacityPercent, UpdateSourceTrigger=PropertyChanged}" />
+                <CheckBox Margin="12,0,0,0" IsChecked="{Binding AlwaysOnTop}">常に手前に表示</CheckBox>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button x:Name="SaveButton" Width="100" Margin="4" Click="OnSave">保存</Button>
+            <Button Width="100" Margin="4" Click="OnCancel">キャンセル</Button>
+        </StackPanel>
+    </DockPanel>
+</Window>
