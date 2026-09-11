@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
+using System.Collections.Specialized;
 using Forms = System.Windows.Forms;
 namespace TickerBoard;
 public partial class MainWindow : Window
@@ -58,6 +59,25 @@ public partial class MainWindow : Window
             }
         }
         catch { }
+        // Start the ticker animation after initialization
+        StartTickerAnimation();
+
+        // Restart/refresh animation when the quotes collection changes (items added/removed)
+        try
+        {
+            if (_viewModel.Quotes is INotifyCollectionChanged nc)
+            {
+                nc.CollectionChanged -= Quotes_CollectionChanged;
+                nc.CollectionChanged += Quotes_CollectionChanged;
+            }
+        }
+        catch { }
+    }
+
+    private void Quotes_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Defer to allow layout to update after items change
+        this.Dispatcher.InvokeAsync(() => StartTickerAnimation(), System.Windows.Threading.DispatcherPriority.Loaded);
     }
     private void ApplyWindowSettings()
     {
