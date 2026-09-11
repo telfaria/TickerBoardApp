@@ -15,7 +15,7 @@ public partial class MainWindow : Window
     private System.Diagnostics.Stopwatch? _renderStopwatch;
     private double _lastRenderTime;
     private double _offset;
-    private double _cycleStartOffset;
+    private double _viewportWidth;
     private double _speedPixelsPerSecond;
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
     {
@@ -204,41 +204,16 @@ public partial class MainWindow : Window
                     _firstContentWidth = Math.Max(_firstContentWidth, measured);
                 }
 
-                // Start displaying from the right edge of the first content sequence so items don't immediately scroll out.
-                double viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
-                // Try to position the very first item so its left edge sits at the right edge of the viewport.
-                // We compute the current screen X of the first child and shift the whole stack so that X == viewportWidth.
-                try
+                // Start from right edge and keep the same anchor on each loop.
+                _viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
+                var pct = Math.Clamp(_settings.InitialOffsetPercent, 0, 100) / 100.0;
+                // 100 -> first item starts at right edge, 0 -> one full cycle ahead
+                _offset = (1.0 - pct) * _firstContentWidth;
+                if (_firstContentWidth > 0)
                 {
-                    var firstPanel = FindVisualChild<System.Windows.Controls.StackPanel>(first);
-                    if (firstPanel != null && System.Windows.Media.VisualTreeHelper.GetChildrenCount(firstPanel) > 0)
-                    {
-                        var firstChild = System.Windows.Media.VisualTreeHelper.GetChild(firstPanel, 0) as System.Windows.FrameworkElement;
-                        if (firstChild != null && grid != null)
-                        {
-                            // Ensure layout is up to date
-                            firstChild.UpdateLayout();
-                            // Get child's position relative to the grid (viewport)
-                            var transformToGrid = firstChild.TransformToAncestor(grid);
-                            var childPos = transformToGrid.Transform(new System.Windows.Point(0, 0));
-                            // desired transform.X so that child left == viewportWidth
-                            var desiredTransformX = viewportWidth - childPos.X;
-                            // Apply configured initial offset percent (0..100)
-                            var pct = Math.Clamp(_settings.InitialOffsetPercent, 0, 100) / 100.0;
-                            _tickerTransform.X = desiredTransformX * pct;
-                            _offset = -_tickerTransform.X;
-                            if (_firstContentWidth > 0)
-                            {
-                                _offset = (_offset % _firstContentWidth + _firstContentWidth) % _firstContentWidth;
-                                _tickerTransform.X = -_offset;
-                            }
-                        }
-                    }
+                    _offset = (_offset % _firstContentWidth + _firstContentWidth) % _firstContentWidth;
                 }
-                catch { }
-
-                // Keep the cycle start anchored to the initial right-edge alignment.
-                _cycleStartOffset = _offset;
+                _tickerTransform.X = _viewportWidth - _offset;
                 _speedPixelsPerSecond = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0;
 
                 if (_renderStopwatch == null) _renderStopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -281,12 +256,13 @@ public partial class MainWindow : Window
             _offset += delta * _speedPixelsPerSecond;
             if (_firstContentWidth > 0)
             {
-                var cycleEnd = _cycleStartOffset + _firstContentWidth;
-                while (_offset >= cycleEnd)
+                while (_offset >= _firstContentWidth)
                 {
                     _offset -= _firstContentWidth;
                 }
-                _tickerTransform.X = -_offset;
+                var grid = this.FindName("TickerGrid") as System.Windows.Controls.Grid;
+                _viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
+                _tickerTransform.X = _viewportWidth - _offset;
             }
         }
         catch { }
