@@ -205,17 +205,36 @@ public partial class MainWindow : Window
 
                 // Start displaying from the right edge of the first content sequence so items don't immediately scroll out.
                 double viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
-                // Compute start offset so the first item's left edge appears at the right edge of the viewport
-                // Normalize to the repeating content width so offsets stay within [0, _firstContentWidth)
-                double refOffset = 0;
-                if (_firstContentWidth > 0)
+                // Try to position the very first item so its left edge sits at the right edge of the viewport.
+                // We compute the current screen X of the first child and shift the whole stack so that X == viewportWidth.
+                try
                 {
-                    var vwMod = viewportWidth % _firstContentWidth;
-                    refOffset = (_firstContentWidth - vwMod) % _firstContentWidth;
+                    var firstPanel = FindVisualChild<System.Windows.Controls.StackPanel>(first);
+                    if (firstPanel != null && System.Windows.Media.VisualTreeHelper.GetChildrenCount(firstPanel) > 0)
+                    {
+                        var firstChild = System.Windows.Media.VisualTreeHelper.GetChild(firstPanel, 0) as System.Windows.FrameworkElement;
+                        if (firstChild != null && grid != null)
+                        {
+                            // Ensure layout is up to date
+                            firstChild.UpdateLayout();
+                            // Get child's position relative to the grid (viewport)
+                            var transformToGrid = firstChild.TransformToAncestor(grid);
+                            var childPos = transformToGrid.Transform(new System.Windows.Point(0, 0));
+                            // desired transform.X so that child left == viewportWidth
+                            var desiredTransformX = viewportWidth - childPos.X;
+                            // Apply configured initial offset percent (0..100)
+                            var pct = Math.Clamp(_settings.InitialOffsetPercent, 0, 100) / 100.0;
+                            _tickerTransform.X = desiredTransformX * pct;
+                            _offset = -_tickerTransform.X;
+                            if (_firstContentWidth > 0)
+                            {
+                                _offset = (_offset % _firstContentWidth + _firstContentWidth) % _firstContentWidth;
+                                _tickerTransform.X = -_offset;
+                            }
+                        }
+                    }
                 }
-                var pct = Math.Clamp(_settings.InitialOffsetPercent, 0, 100) / 100.0;
-                _offset = refOffset * pct;
-                _tickerTransform.X = -_offset;
+                catch { }
                 _speedPixelsPerSecond = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0;
 
                 if (_renderStopwatch == null) _renderStopwatch = System.Diagnostics.Stopwatch.StartNew();
