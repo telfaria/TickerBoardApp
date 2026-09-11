@@ -164,19 +164,38 @@ public partial class MainWindow : Window
                         // Measure with infinite available space so DesiredSize reflects full content width
                         panel.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
                         panel.UpdateLayout();
-                        _firstContentWidth = panel.DesiredSize.Width;
+
+                        // Compute total width by summing child widths and horizontal margins to avoid cut-off
+                        double total = 0;
+                        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(panel); i++)
+                        {
+                            var child = System.Windows.Media.VisualTreeHelper.GetChild(panel, i) as System.Windows.FrameworkElement;
+                            if (child == null) continue;
+                            // Ensure child is measured
+                            child.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+                            var w = child.DesiredSize.Width;
+                            if (child is System.Windows.FrameworkElement fe)
+                            {
+                                w += fe.Margin.Left + fe.Margin.Right;
+                            }
+                            total += w;
+                        }
+
+                        // Fallback to panel.DesiredSize if no children measured
+                        _firstContentWidth = total > 0 ? total : panel.DesiredSize.Width;
                     }
                 }
 
                 if (_firstContentWidth <= 0) return;
 
-                // Ensure the second copy matches the measured content width. If measurement failed,
-                // fall back to at least the window width so the continuous scroll does not cut off items.
+                // Ensure the second copy matches the measured content width so the loop is seamless.
                 if (second != null)
                 {
-                    var fallback = Math.Max(this.ActualWidth, _firstContentWidth);
-                    second.Width = fallback;
-                    _firstContentWidth = Math.Max(_firstContentWidth, fallback);
+                    // If measurement produced zero, use the visible window width as a safe fallback
+                    var measured = _firstContentWidth > 0 ? _firstContentWidth : Math.Max(this.ActualWidth, 0);
+                    second.Width = measured;
+                    // Keep _firstContentWidth as the authoritative scroll cycle width
+                    _firstContentWidth = Math.Max(_firstContentWidth, measured);
                 }
 
                 _offset = 0;
