@@ -152,8 +152,9 @@ public partial class MainWindow : Window
                 stack.RenderTransform = _tickerTransform;
             }
 
-            var first = this.FindName("QuotesControl1") as System.Windows.Controls.ItemsControl;
+                var first = this.FindName("QuotesControl1") as System.Windows.Controls.ItemsControl;
             var second = this.FindName("QuotesControl2") as System.Windows.Controls.ItemsControl;
+                var grid = this.FindName("TickerGrid") as System.Windows.Controls.Grid;
             this.Dispatcher.InvokeAsync(() =>
             {
                 // Try to get accurate width of the inner items panel (the StackPanel inside the ItemsControl)

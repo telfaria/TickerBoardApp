@@ -8,7 +8,11 @@ namespace TickerBoard;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly IMarketDataProvider _marketDataProvider; private readonly DispatcherTimer _timer = new(); private IReadOnlyList<SymbolSetting> _symbols = []; private string _lastUpdatedText = "更新待ち"; private bool _isUpdating;
+    // Original quotes as provided by the data source
     public ObservableCollection<QuoteViewModel> Quotes { get; } = [];
+
+    // A collection that contains repeated copies of Quotes for display (dynamically generated)
+    public ObservableCollection<QuoteViewModel> DisplayQuotes { get; } = new();
     public string LastUpdatedText { get => _lastUpdatedText; private set => SetField(ref _lastUpdatedText, value); }
     public event PropertyChangedEventHandler? PropertyChanged;
     public MainViewModel(IMarketDataProvider marketDataProvider) { _marketDataProvider = marketDataProvider; _timer.Tick += async (_, _) => await RefreshAsync(); }
@@ -16,7 +20,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private async Task RefreshAsync()
     {
         if (_isUpdating) return; _isUpdating = true;
-        try { var quotes = await _marketDataProvider.GetQuotesAsync(_symbols); Quotes.Clear(); foreach (var quote in quotes) Quotes.Add(new QuoteViewModel(quote)); LastUpdatedText = $"更新 {DateTime.Now:HH:mm}"; }
+        try
+        {
+            var quotes = await _marketDataProvider.GetQuotesAsync(_symbols);
+            Quotes.Clear();
+            foreach (var quote in quotes) Quotes.Add(new QuoteViewModel(quote));
+
+            // Update DisplayQuotes to at least include the base sequence once; actual duplication is managed by the view
+            DisplayQuotes.Clear();
+            foreach (var q in Quotes) DisplayQuotes.Add(q);
+
+            LastUpdatedText = $"更新 {DateTime.Now:HH:mm}";
+        }
         catch (Exception) { LastUpdatedText = "データの更新に失敗しました"; }
         finally { _isUpdating = false; }
     }
