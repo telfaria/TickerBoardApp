@@ -24,11 +24,16 @@
                 <CheckBox Margin="12,0,0,0" IsChecked="{Binding AlwaysOnTop}">常に手前に表示</CheckBox>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <StackPanel Orientation="Vertical" Margin="0,8,0,0" HorizontalAlignment="Left">
                 <TextBlock Width="160" VerticalAlignment="Center">フォント:</TextBlock>
                 <ComboBox Width="240" ItemsSource="{Binding Fonts}" SelectedItem="{Binding FontFamily, UpdateSourceTrigger=PropertyChanged}" />
                 <TextBlock Width="80" Margin="12,0,0,0" VerticalAlignment="Center">サイズ:</TextBlock>
                 <TextBox Width="80" Text="{Binding FontSize, UpdateSourceTrigger=PropertyChanged}" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                    <TextBlock Width="160" VerticalAlignment="Center">スクロール速度 (px/s):</TextBlock>
+                    <Slider Width="200" Minimum="1" Maximum="1000" Value="{Binding ScrollSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Width="80" Margin="8,0,0,0" Text="{Binding ScrollSpeed, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
             </StackPanel>
         </StackPanel>
 

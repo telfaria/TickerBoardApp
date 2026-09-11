@@ -32,6 +32,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private double _fontSize = 14.0;
     public double FontSize { get => _fontSize; set => SetField(ref _fontSize, value); }
 
+    private double _scrollSpeed = 60.0;
+    public double ScrollSpeed { get => _scrollSpeed; set => SetField(ref _scrollSpeed, value); }
+
     public SettingsViewModel(AppSettings settings)
     {
         RefreshIntervalSeconds = settings.RefreshIntervalSeconds;
@@ -41,6 +44,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         foreach (var s in settings.Symbols) Symbols.Add(new SymbolSetting { Symbol = s.Symbol, Name = s.Name, Market = s.Market });
         FontFamily = settings.FontFamily ?? FontFamily;
         FontSize = settings.FontSize > 0 ? settings.FontSize : FontSize;
+        ScrollSpeed = settings.ScrollSpeed > 0 ? settings.ScrollSpeed : ScrollSpeed;
 
         // populate available font family names
         foreach (var ff in System.Windows.Media.Fonts.SystemFontFamilies.Select(f => f.Source).OrderBy(s => s)) Fonts.Add(ff);
@@ -59,6 +63,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         ,
             FontFamily = FontFamily,
             FontSize = FontSize
+            ,
+            ScrollSpeed = ScrollSpeed
         };
     }
 
@@ -74,6 +80,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             if (string.IsNullOrWhiteSpace(s.Market)) { errors.Add($"市場が未選択の銘柄があります: {s.Symbol}"); break; }
         }
         if (FontSize < 8 || FontSize > 72) errors.Add("フォントサイズは8〜72の間で指定してください。");
+        if (ScrollSpeed < 1 || ScrollSpeed > 1000) errors.Add("スクロール速度は1〜1000 (px/s) の範囲で指定してください。");
         return errors;
     }
 

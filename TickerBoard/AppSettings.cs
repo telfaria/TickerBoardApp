@@ -9,6 +9,7 @@ public sealed class AppSettings
     public List<SymbolSetting> Symbols { get; set; } = [];
     public string FontFamily { get; set; } = "Segoe UI";
     public double FontSize { get; set; } = 14.0;
+    public double ScrollSpeed { get; set; } = 60.0; // pixels per second
 }
 public sealed class SymbolSetting
 {

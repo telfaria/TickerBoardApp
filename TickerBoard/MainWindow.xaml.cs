@@ -7,10 +7,9 @@ public partial class MainWindow : Window
     private readonly JsonSettingsService _settingsService;
     private readonly MainViewModel _viewModel;
     private AppSettings _settings = new();
-    private System.Windows.Threading.DispatcherTimer? _tickerTimer;
+    private System.Windows.Media.Animation.Storyboard? _tickerStoryboard;
     private System.Windows.Media.TranslateTransform? _tickerTransform;
     private double _firstContentWidth;
-    private const double ScrollSpeed = 1.0; // pixels per tick
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
     {
         _settingsService = settingsService;
@@ -97,7 +96,11 @@ public partial class MainWindow : Window
             // apply settings immediately
             _settings = app;
             ApplyWindowSettings();
-            _ = _viewModel.InitializeAsync(_settings.Symbols, _settings.RefreshIntervalSeconds);
+            _ = _viewModel.InitializeAsync(_settings.Symbols, _settings.RefreshIntervalSeconds).ContinueWith(_ =>
+            {
+                // restart ticker with new speed
+                this.Dispatcher.Invoke(() => StartTickerAnimation());
+            });
         });
         win.Owner = this;
         win.Show();
@@ -105,4 +108,70 @@ public partial class MainWindow : Window
     private void OnSettingsClick(object sender, MouseButtonEventArgs e) { e.Handled = true; OpenSettingsMenu(); }
     private void OpenSettingsMenu()
     { var menu = new System.Windows.Controls.ContextMenu(); var displays = new System.Windows.Controls.MenuItem { Header = "表示ディスプレイ" }; foreach (var screen in Forms.Screen.AllScreens) { var item = new System.Windows.Controls.MenuItem { Header = $"{screen.DeviceName} ({screen.Bounds.Width} × {screen.Bounds.Height})", IsCheckable = true, IsChecked = screen.DeviceName == _settings.DisplayDeviceName }; item.Click += async (_, _) => { _settings.DisplayDeviceName = screen.DeviceName; await _settingsService.SaveAsync(_settings); ApplyWindowSettings(); }; displays.Items.Add(item); } var topmost = new System.Windows.Controls.MenuItem { Header = "常に手前に表示", IsCheckable = true, IsChecked = _settings.AlwaysOnTop }; topmost.Click += async (_, _) => { _settings.AlwaysOnTop = topmost.IsChecked; await _settingsService.SaveAsync(_settings); Topmost = _settings.AlwaysOnTop; }; var exit = new System.Windows.Controls.MenuItem { Header = "終了" }; exit.Click += (_, _) => Close(); menu.Items.Add(displays); menu.Items.Add(topmost); menu.Items.Add(new System.Windows.Controls.Separator()); menu.Items.Add(exit); menu.IsOpen = true; }
+
+    private void StartTickerAnimation()
+    {
+        try
+        {
+            var stack = this.FindName("TickerStack") as System.Windows.Controls.StackPanel;
+            if (stack == null) return;
+
+            if (stack.RenderTransform is System.Windows.Media.TranslateTransform tt) _tickerTransform = tt;
+            else
+            {
+                _tickerTransform = new System.Windows.Media.TranslateTransform(0, 0);
+                stack.RenderTransform = _tickerTransform;
+            }
+
+            var first = this.FindName("QuotesControl1") as System.Windows.Controls.ItemsControl;
+            this.Dispatcher.InvokeAsync(() =>
+            {
+                _firstContentWidth = first?.ActualWidth ?? 0;
+                if (_firstContentWidth <= 0 && first != null)
+                {
+                    // try to find the internal items panel (StackPanel) and measure it
+                    var panel = FindVisualChild<System.Windows.FrameworkElement>(first);
+                    if (panel != null)
+                    {
+                        panel.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+                        _firstContentWidth = panel.DesiredSize.Width;
+                    }
+                }
+
+                if (_firstContentWidth <= 0) return;
+
+                _tickerStoryboard?.Stop();
+
+                double speed = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0; // px/s
+                double durationSeconds = Math.Max(0.1, _firstContentWidth / speed);
+
+                var anim = new System.Windows.Media.Animation.DoubleAnimation(0, -_firstContentWidth, TimeSpan.FromSeconds(durationSeconds))
+                {
+                    RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever
+                };
+
+                var sb = new System.Windows.Media.Animation.Storyboard();
+                sb.Children.Add(anim);
+                System.Windows.Media.Animation.Storyboard.SetTarget(anim, stack);
+                System.Windows.Media.Animation.Storyboard.SetTargetProperty(anim, new System.Windows.PropertyPath("(UIElement.RenderTransform).(TranslateTransform.X)"));
+
+                _tickerStoryboard = sb;
+                _tickerStoryboard.Begin();
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+        catch { }
+    }
+
+    private static T? FindVisualChild<T>(System.Windows.DependencyObject dep) where T : System.Windows.DependencyObject
+    {
+        if (dep == null) return null;
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(dep); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(dep, i);
+            if (child is T t) return t;
+            var result = FindVisualChild<T>(child);
+            if (result != null) return result;
+        }
+        return null;
+    }
 }
