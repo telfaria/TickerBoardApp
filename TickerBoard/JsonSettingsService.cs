@@ -12,6 +12,7 @@ public sealed class JsonSettingsService
         await using var stream = File.OpenRead(_settingsPath);
         return await JsonSerializer.DeserializeAsync<AppSettings>(stream, Options) ?? new AppSettings();
     }
+    public async Task<AppSettings> GetPackagedDefaultsAsync() => await LoadPackagedDefaultsAsync();
     public async Task SaveAsync(AppSettings settings)
     { Directory.CreateDirectory(Path.GetDirectoryName(_settingsPath)!); await using var stream = File.Create(_settingsPath); await JsonSerializer.SerializeAsync(stream, settings, Options); }
     private static async Task<AppSettings> LoadPackagedDefaultsAsync()

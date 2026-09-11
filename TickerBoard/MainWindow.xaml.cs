@@ -10,7 +10,31 @@ public partial class MainWindow : Window
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
     { _settingsService = settingsService; _viewModel = new MainViewModel(marketDataProvider); DataContext = _viewModel; InitializeComponent(); }
     private async void OnLoaded(object sender, RoutedEventArgs e)
-    { _settings = await _settingsService.LoadAsync(); ApplyWindowSettings(); await _viewModel.InitializeAsync(_settings.Symbols, _settings.RefreshIntervalSeconds); }
+    {
+        _settings = await _settingsService.LoadAsync();
+
+        var packagedDefaults = new AppSettings();
+        if (_settings.Symbols is null || _settings.Symbols.Count == 0)
+        {
+            _settings.Symbols = packagedDefaults.Symbols;
+            await _settingsService.SaveAsync(_settings);
+        }
+
+        var fontFamilyProp = typeof(AppSettings).GetProperty("FontFamily");
+        if (fontFamilyProp?.GetValue(_settings) is string fontFamily && !string.IsNullOrWhiteSpace(fontFamily))
+        {
+            FontFamily = new System.Windows.Media.FontFamily(fontFamily);
+        }
+
+        var fontSizeProp = typeof(AppSettings).GetProperty("FontSize");
+        if (fontSizeProp?.GetValue(_settings) is double fontSize && fontSize > 0)
+        {
+            FontSize = fontSize;
+        }
+
+        ApplyWindowSettings();
+        await _viewModel.InitializeAsync(_settings.Symbols, _settings.RefreshIntervalSeconds);
+    }
     private void ApplyWindowSettings()
     {
         var screen = Forms.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == _settings.DisplayDeviceName) ?? Forms.Screen.PrimaryScreen!;
