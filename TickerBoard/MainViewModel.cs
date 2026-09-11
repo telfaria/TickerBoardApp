@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Linq;
 namespace TickerBoard;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
