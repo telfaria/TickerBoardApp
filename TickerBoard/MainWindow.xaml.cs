@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using Forms = System.Windows.Forms;
@@ -7,9 +9,12 @@ public partial class MainWindow : Window
     private readonly JsonSettingsService _settingsService;
     private readonly MainViewModel _viewModel;
     private AppSettings _settings = new();
-    private System.Windows.Media.Animation.Storyboard? _tickerStoryboard;
     private System.Windows.Media.TranslateTransform? _tickerTransform;
     private double _firstContentWidth;
+    private System.Diagnostics.Stopwatch? _renderStopwatch;
+    private double _lastRenderTime;
+    private double _offset;
+    private double _speedPixelsPerSecond;
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
     {
         _settingsService = settingsService;
@@ -124,12 +129,12 @@ public partial class MainWindow : Window
             }
 
             var first = this.FindName("QuotesControl1") as System.Windows.Controls.ItemsControl;
+            var second = this.FindName("QuotesControl2") as System.Windows.Controls.ItemsControl;
             this.Dispatcher.InvokeAsync(() =>
             {
                 _firstContentWidth = first?.ActualWidth ?? 0;
                 if (_firstContentWidth <= 0 && first != null)
                 {
-                    // try to find the internal items panel (StackPanel) and measure it
                     var panel = FindVisualChild<System.Windows.FrameworkElement>(first);
                     if (panel != null)
                     {
@@ -140,27 +145,24 @@ public partial class MainWindow : Window
 
                 if (_firstContentWidth <= 0) return;
 
-                _tickerStoryboard?.Stop();
+                if (second != null) second.Width = _firstContentWidth;
 
-                double speed = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0; // px/s
-                double durationSeconds = Math.Max(0.1, _firstContentWidth / speed);
+                _offset = 0;
+                _tickerTransform.X = 0;
+                _speedPixelsPerSecond = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0;
 
-                var anim = new System.Windows.Media.Animation.DoubleAnimation(0, -_firstContentWidth, TimeSpan.FromSeconds(durationSeconds))
-                {
-                    RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever
-                };
+                if (_renderStopwatch == null) _renderStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                else _renderStopwatch.Restart();
+                _lastRenderTime = _renderStopwatch.Elapsed.TotalSeconds;
 
-                var sb = new System.Windows.Media.Animation.Storyboard();
-                sb.Children.Add(anim);
-                System.Windows.Media.Animation.Storyboard.SetTarget(anim, stack);
-                System.Windows.Media.Animation.Storyboard.SetTargetProperty(anim, new System.Windows.PropertyPath("(UIElement.RenderTransform).(TranslateTransform.X)"));
-
-                _tickerStoryboard = sb;
-                _tickerStoryboard.Begin();
+                System.Windows.Media.CompositionTarget.Rendering -= OnRendering;
+                System.Windows.Media.CompositionTarget.Rendering += OnRendering;
             }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
         catch { }
     }
+
+
 
     private static T? FindVisualChild<T>(System.Windows.DependencyObject dep) where T : System.Windows.DependencyObject
     {
@@ -173,5 +175,37 @@ public partial class MainWindow : Window
             if (result != null) return result;
         }
         return null;
+    }
+
+    private void OnRendering(object? sender, System.EventArgs e)
+    {
+        try
+        {
+            if (_tickerTransform == null) return;
+            if (_firstContentWidth <= 0) return;
+            if (_renderStopwatch == null) return;
+
+            var now = _renderStopwatch.Elapsed.TotalSeconds;
+            var delta = now - _lastRenderTime;
+            _lastRenderTime = now;
+            _offset += delta * _speedPixelsPerSecond;
+            if (_firstContentWidth > 0)
+            {
+                _offset %= _firstContentWidth;
+                _tickerTransform.X = -_offset;
+            }
+        }
+        catch { }
+    }
+
+    protected override void OnClosed(System.EventArgs e)
+    {
+        base.OnClosed(e);
+        try
+        {
+            System.Windows.Media.CompositionTarget.Rendering -= OnRendering;
+            _renderStopwatch?.Stop();
+        }
+        catch { }
     }
 }
