@@ -132,20 +132,32 @@ public partial class MainWindow : Window
             var second = this.FindName("QuotesControl2") as System.Windows.Controls.ItemsControl;
             this.Dispatcher.InvokeAsync(() =>
             {
+                // Try to get accurate width of the inner items panel (the StackPanel inside the ItemsControl)
                 _firstContentWidth = first?.ActualWidth ?? 0;
-                if (_firstContentWidth <= 0 && first != null)
+                if ((int)_firstContentWidth == 0 && first != null)
                 {
-                    var panel = FindVisualChild<System.Windows.FrameworkElement>(first);
+                    // Force layout update then locate the items host (StackPanel) specifically
+                    first.UpdateLayout();
+                    var panel = FindVisualChild<System.Windows.Controls.StackPanel>(first);
                     if (panel != null)
                     {
+                        // Measure with infinite available space so DesiredSize reflects full content width
                         panel.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+                        panel.UpdateLayout();
                         _firstContentWidth = panel.DesiredSize.Width;
                     }
                 }
 
                 if (_firstContentWidth <= 0) return;
 
-                if (second != null) second.Width = _firstContentWidth;
+                // Ensure the second copy matches the measured content width. If measurement failed,
+                // fall back to at least the window width so the continuous scroll does not cut off items.
+                if (second != null)
+                {
+                    var fallback = Math.Max(this.ActualWidth, _firstContentWidth);
+                    second.Width = fallback;
+                    _firstContentWidth = Math.Max(_firstContentWidth, fallback);
+                }
 
                 _offset = 0;
                 _tickerTransform.X = 0;
