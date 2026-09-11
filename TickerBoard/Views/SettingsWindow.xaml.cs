@@ -19,6 +19,23 @@ public partial class SettingsWindow : Window
         DataContext = _vm;
         _onSaved = onSaved;
         InitializeComponent();
+
+        // Ensure Save/Cancel buttons are docked at bottom and do not get overlapped by the settings area.
+        try
+        {
+            var root = this.Content as System.Windows.Controls.DockPanel;
+            var saveBtn = this.FindName("SaveButton") as System.Windows.Controls.Button;
+            var dataGrid = this.FindName("SymbolsGrid") as System.Windows.Controls.DataGrid;
+            if (root != null && saveBtn != null && dataGrid != null)
+            {
+                // Remove and re-insert Save button right after the DataGrid so DockPanel will layout correctly
+                root.Children.Remove(saveBtn);
+                var idx = root.Children.IndexOf(dataGrid);
+                if (idx >= 0) root.Children.Insert(idx + 1, saveBtn);
+                System.Windows.Controls.DockPanel.SetDock(saveBtn, System.Windows.Controls.Dock.Bottom);
+            }
+        }
+        catch { /* ignore any rearrange errors */ }
     }
 
     private async void OnSave(object sender, RoutedEventArgs e)
