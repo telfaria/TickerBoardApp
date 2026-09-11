@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private System.Diagnostics.Stopwatch? _renderStopwatch;
     private double _lastRenderTime;
     private double _offset;
+    private double _cycleStartOffset;
     private double _speedPixelsPerSecond;
     public MainWindow(JsonSettingsService settingsService, IMarketDataProvider marketDataProvider)
     {
@@ -235,6 +236,9 @@ public partial class MainWindow : Window
                     }
                 }
                 catch { }
+
+                // Keep the cycle start anchored to the initial right-edge alignment.
+                _cycleStartOffset = _offset;
                 _speedPixelsPerSecond = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0;
 
                 if (_renderStopwatch == null) _renderStopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -277,7 +281,11 @@ public partial class MainWindow : Window
             _offset += delta * _speedPixelsPerSecond;
             if (_firstContentWidth > 0)
             {
-                _offset %= _firstContentWidth;
+                var cycleEnd = _cycleStartOffset + _firstContentWidth;
+                while (_offset >= cycleEnd)
+                {
+                    _offset -= _firstContentWidth;
+                }
                 _tickerTransform.X = -_offset;
             }
         }
