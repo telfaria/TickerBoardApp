@@ -10,6 +10,8 @@ public sealed class AppSettings
     public string FontFamily { get; set; } = "Segoe UI";
     public double FontSize { get; set; } = 14.0;
     public int ScrollSpeed { get; set; } = 60; // pixels per second (integer)
+    // 初期表示のオフセット位置（%）。0=左端、100=右端
+    public int InitialOffsetPercent { get; set; } = 100;
 }
 public sealed class SymbolSetting
 {

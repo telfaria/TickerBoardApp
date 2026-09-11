@@ -205,7 +205,9 @@ public partial class MainWindow : Window
 
                 // Start displaying from the right edge of the first content sequence so items don't immediately scroll out.
                 double viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
-                var startOffset = Math.Max(0, _firstContentWidth - viewportWidth);
+                // Compute start offset based on configured InitialOffsetPercent
+                var pct = Math.Clamp(_settings.InitialOffsetPercent, 0, 100) / 100.0;
+                var startOffset = Math.Max(0, _firstContentWidth - viewportWidth) * pct;
                 _offset = startOffset;
                 _tickerTransform.X = -_offset;
                 _speedPixelsPerSecond = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0;
