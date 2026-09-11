@@ -203,8 +203,11 @@ public partial class MainWindow : Window
                     _firstContentWidth = Math.Max(_firstContentWidth, measured);
                 }
 
-                _offset = 0;
-                _tickerTransform.X = 0;
+                // Start displaying from the right edge of the first content sequence so items don't immediately scroll out.
+                double viewportWidth = grid?.ActualWidth ?? this.ActualWidth;
+                var startOffset = Math.Max(0, _firstContentWidth - viewportWidth);
+                _offset = startOffset;
+                _tickerTransform.X = -_offset;
                 _speedPixelsPerSecond = _settings.ScrollSpeed > 0 ? _settings.ScrollSpeed : 60.0;
 
                 if (_renderStopwatch == null) _renderStopwatch = System.Diagnostics.Stopwatch.StartNew();
