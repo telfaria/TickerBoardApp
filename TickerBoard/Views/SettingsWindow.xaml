@@ -23,6 +23,13 @@
                 <TextBox Width="80" Text="{Binding OpacityPercent, UpdateSourceTrigger=PropertyChanged}" />
                 <CheckBox Margin="12,0,0,0" IsChecked="{Binding AlwaysOnTop}">常に手前に表示</CheckBox>
             </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Width="160" VerticalAlignment="Center">フォント:</TextBlock>
+                <ComboBox Width="240" ItemsSource="{Binding Fonts}" SelectedItem="{Binding FontFamily, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Width="80" Margin="12,0,0,0" VerticalAlignment="Center">サイズ:</TextBlock>
+                <TextBox Width="80" Text="{Binding FontSize, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Bottom" Margin="0,12,0,0">

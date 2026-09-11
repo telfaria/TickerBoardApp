@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows.Media;
 
 namespace TickerBoard;
 
@@ -9,6 +11,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ObservableCollection<SymbolSetting> Symbols { get; } = new();
+    public IList<string> Markets { get; } = new List<string> { "JP", "US", "ETF" };
+    public IList<string> Fonts { get; } = new List<string>();
 
     private int _refreshIntervalSeconds;
     public int RefreshIntervalSeconds { get => _refreshIntervalSeconds; set => SetField(ref _refreshIntervalSeconds, value); }
@@ -22,6 +26,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private bool _alwaysOnTop;
     public bool AlwaysOnTop { get => _alwaysOnTop; set => SetField(ref _alwaysOnTop, value); }
 
+    private string _fontFamily = "Segoe UI";
+    public string FontFamily { get => _fontFamily; set => SetField(ref _fontFamily, value); }
+
+    private double _fontSize = 14.0;
+    public double FontSize { get => _fontSize; set => SetField(ref _fontSize, value); }
+
     public SettingsViewModel(AppSettings settings)
     {
         RefreshIntervalSeconds = settings.RefreshIntervalSeconds;
@@ -29,6 +39,11 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         OpacityPercent = settings.OpacityPercent;
         AlwaysOnTop = settings.AlwaysOnTop;
         foreach (var s in settings.Symbols) Symbols.Add(new SymbolSetting { Symbol = s.Symbol, Name = s.Name, Market = s.Market });
+        FontFamily = settings.FontFamily ?? FontFamily;
+        FontSize = settings.FontSize > 0 ? settings.FontSize : FontSize;
+
+        // populate available font family names
+        foreach (var ff in System.Windows.Media.Fonts.SystemFontFamilies.Select(f => f.Source).OrderBy(s => s)) Fonts.Add(ff);
     }
 
     public AppSettings ToAppSettings()
@@ -41,6 +56,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             OpacityPercent = Math.Clamp(OpacityPercent, 20, 100),
             AlwaysOnTop = AlwaysOnTop,
             Symbols = Symbols.ToList()
+        ,
+            FontFamily = FontFamily,
+            FontSize = FontSize
         };
     }
 
@@ -55,6 +73,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             if (!codes.Add(s.Symbol)) { errors.Add($"重複した銘柄コードがあります: {s.Symbol}"); break; }
             if (string.IsNullOrWhiteSpace(s.Market)) { errors.Add($"市場が未選択の銘柄があります: {s.Symbol}"); break; }
         }
+        if (FontSize < 8 || FontSize > 72) errors.Add("フォントサイズは8〜72の間で指定してください。");
         return errors;
     }
 

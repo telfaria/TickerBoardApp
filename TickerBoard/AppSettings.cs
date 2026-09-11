@@ -7,6 +7,8 @@ public sealed class AppSettings
     public int OpacityPercent { get; set; } = 96;
     public bool AlwaysOnTop { get; set; } = true;
     public List<SymbolSetting> Symbols { get; set; } = [];
+    public string FontFamily { get; set; } = "Segoe UI";
+    public double FontSize { get; set; } = 14.0;
 }
 public sealed class SymbolSetting
 {

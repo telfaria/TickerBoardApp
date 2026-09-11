@@ -9,7 +9,8 @@ public partial class SettingsWindow : Window
     private readonly SettingsViewModel _vm;
     private readonly Action<AppSettings>? _onSaved;
 
-    public IEnumerable<string> Markets { get; } = new[] { "JP", "US", "ETF" };
+    // Markets are provided by the ViewModel; keep this for compatibility if needed
+    public IEnumerable<string> Markets => _vm.Markets;
 
     public SettingsWindow(JsonSettingsService settingsService, AppSettings current, Action<AppSettings>? onSaved)
     {
