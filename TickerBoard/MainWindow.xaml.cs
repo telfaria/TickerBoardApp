@@ -59,8 +59,12 @@ public partial class MainWindow : Window
             }
         }
         catch { }
-        // Start the ticker animation after initialization
-        StartTickerAnimation();
+                // Start the ticker animation after initialization
+        // Delay start until after layout/first render so measurement is accurate
+        this.Dispatcher.InvokeAsync(() => {
+            // Allow one layout/pass to complete
+            System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeAsync(() => StartTickerAnimation(), System.Windows.Threading.DispatcherPriority.Loaded);
+        }, System.Windows.Threading.DispatcherPriority.Background);
 
         // Restart/refresh animation when the quotes collection changes (items added/removed)
         try

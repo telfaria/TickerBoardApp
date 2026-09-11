@@ -7,7 +7,8 @@
                 <StackPanel VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{Binding Symbol}" Foreground="#E2E8F0" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding Name}" Foreground="#94A3B8" Margin="7,0,0,0" />
+                        <!-- 長い銘柄名は切り詰めて表示幅を安定させる -->
+                        <TextBlock Text="{Binding Name}" Foreground="#94A3B8" Margin="7,0,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="220" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                         <TextBlock Text="{Binding PriceDisplay}" Foreground="White" FontWeight="SemiBold" />
